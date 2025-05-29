@@ -25,6 +25,9 @@
 
 cmake_minimum_required(VERSION 3.10.0)
 
+# Load bundled libraries from the lib/ directory relative to the binary.
+set(CMAKE_INSTALL_RPATH "$ORIGIN/lib")
+
 # configure options
 option(BUILD_TEXT_INPUT_PLUGIN "Include the text input plugin in the finished binary. Enables text input (to flutter text fields, for example) via attached keyboards." ON)
 option(BUILD_RAW_KEYBOARD_PLUGIN "Include the raw keyboard plugin in the finished binary. Enables raw keycode listening in flutter via the flutter RawKeyboard interface." ON)
@@ -73,11 +76,11 @@ option(SENTRY_PLUGIN_BUNDLE_CRASHPAD_HANDLER "Bundle the crashpad_handler with t
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug, Release, or MinSizeRel." FORCE)
-    message(STATUS "CMAKE_BUILD_TYPE not set, defaulting to Release.")
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug, Release, or MinSizeRel." FORCE)
+  message(STATUS "CMAKE_BUILD_TYPE not set, defaulting to Release.")
 endif()
 
-if (BUILD_SENTRY_PLUGIN)
+if(BUILD_SENTRY_PLUGIN)
   set(flutterpi_languages C CXX ASM)
 else()
   set(flutterpi_languages C ASM)
@@ -174,12 +177,13 @@ target_compile_options(flutterpi_module PUBLIC
 )
 
 # GCC prior to 11.3 reports false positives for missing-field-initializers warning.
-if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-  if (CMAKE_C_COMPILER_VERSION VERSION_LESS "11.3")
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_C_COMPILER_VERSION VERSION_LESS "11.3")
     target_compile_options(flutterpi_module PUBLIC -Wno-missing-field-initializers)
   endif()
+
   target_link_options(flutter-pi PUBLIC LINKER:--build-id)
-elseif (CMAKE_C_COMPILER_ID STREQUAL "Clang")
+elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang")
   target_link_options(flutter-pi PUBLIC LINKER:--build-id=sha1)
 endif()
 
@@ -203,8 +207,9 @@ set(HAVE_EGL_GLES2 OFF)
 
 pkg_check_modules(EGL IMPORTED_TARGET egl)
 pkg_check_modules(GLES2 IMPORTED_TARGET glesv2)
-if (ENABLE_OPENGL)
-  if (EGL_FOUND AND GLES2_FOUND)
+
+if(ENABLE_OPENGL)
+  if(EGL_FOUND AND GLES2_FOUND)
     target_sources(flutterpi_module PRIVATE
       src/egl_gbm_render_surface.c
       src/gl_renderer.c
@@ -217,7 +222,7 @@ if (ENABLE_OPENGL)
     set(HAVE_EGL ON)
     set(HAVE_GLES2 ON)
     set(HAVE_EGL_GLES2 ON)
-  elseif (TRY_ENABLE_OPENGL)
+  elseif(TRY_ENABLE_OPENGL)
     message("EGL and/or OpenGL was not found. Flutter-pi will build without EGL/OpenGL rendering support.")
   else()
     message(SEND_ERROR "EGL and/or OpenGL was not found. Try building with `-DTRY_ENABLE_OPENGL=On` if you want to just disable EGL/OpenGL support in that case.")
@@ -232,8 +237,9 @@ message(STATUS "Lint EGL headers ....... ${LINT_EGL_HEADERS}")
 set(HAVE_VULKAN OFF)
 
 pkg_check_modules(VULKAN IMPORTED_TARGET vulkan)
-if (ENABLE_VULKAN)
-  if (VULKAN_FOUND)
+
+if(ENABLE_VULKAN)
+  if(VULKAN_FOUND)
     target_sources(flutterpi_module PRIVATE
       src/vk_gbm_render_surface.c
       src/vk_renderer.c
@@ -243,7 +249,7 @@ if (ENABLE_VULKAN)
     )
 
     set(HAVE_VULKAN ON)
-  elseif (TRY_ENABLE_VULKAN)
+  elseif(TRY_ENABLE_VULKAN)
     message("Vulkan was not found. Flutter-pi will build without vulkan rendering support.")
   else()
     message(SEND_ERROR "Vulkan was not found. Try building with `-DTRY_ENABLE_VULKAN=On` if you want to just disable vulkan support in that case.")
@@ -253,7 +259,7 @@ endif()
 message(STATUS "Vulkan support ......... ${HAVE_VULKAN}")
 
 # We need at least one renderer
-if (NOT HAVE_VULKAN AND NOT HAVE_EGL_GLES2)
+if(NOT HAVE_VULKAN AND NOT HAVE_EGL_GLES2)
   message(SEND_ERROR "At least one of the EGL/GLES2 and Vulkan backends must be enabled.")
 endif()
 
@@ -276,14 +282,14 @@ endif()
 # Session switching support (using libseat)
 set(HAVE_LIBSEAT OFF)
 
-if (ENABLE_SESSION_SWITCHING)
-  if (TRY_ENABLE_SESSION_SWITCHING)
+if(ENABLE_SESSION_SWITCHING)
+  if(TRY_ENABLE_SESSION_SWITCHING)
     pkg_check_modules(LIBSEAT IMPORTED_TARGET libseat)
   else()
     pkg_check_modules(LIBSEAT REQUIRED IMPORTED_TARGET libseat)
   endif()
 
-  if (LIBSEAT_FOUND)
+  if(LIBSEAT_FOUND)
     target_link_libraries(flutterpi_module PUBLIC PkgConfig::LIBSEAT)
     set(HAVE_LIBSEAT ON)
   else()
@@ -296,20 +302,23 @@ message(STATUS "Session switching ...... ${HAVE_LIBSEAT}")
 # TODO: We actually don't need the compile definitions anymore, except for
 # text input and raw keyboard plugin (because those have special treatment
 # in flutter-pi.c)
-if (BUILD_TEXT_INPUT_PLUGIN)
+if(BUILD_TEXT_INPUT_PLUGIN)
   target_sources(flutterpi_module PRIVATE src/plugins/text_input.c)
 endif()
-if (BUILD_RAW_KEYBOARD_PLUGIN)
+
+if(BUILD_RAW_KEYBOARD_PLUGIN)
   target_sources(flutterpi_module PRIVATE src/plugins/raw_keyboard.c)
 endif()
-if (BUILD_TEST_PLUGIN)
+
+if(BUILD_TEST_PLUGIN)
   target_sources(flutterpi_module PRIVATE src/plugins/testplugin.c)
 endif()
-if (BUILD_GSTREAMER_VIDEO_PLAYER_PLUGIN)
-  if (NOT HAVE_EGL_GLES2)
+
+if(BUILD_GSTREAMER_VIDEO_PLAYER_PLUGIN)
+  if(NOT HAVE_EGL_GLES2)
     message(NOTICE "EGL and OpenGL ES2 are required for gstreamer video player. Gstreamer video player plugin won't be build.")
   else()
-    if (TRY_BUILD_GSTREAMER_VIDEO_PLAYER_PLUGIN)
+    if(TRY_BUILD_GSTREAMER_VIDEO_PLAYER_PLUGIN)
       pkg_check_modules(LIBGSTREAMER IMPORTED_TARGET gstreamer-1.0)
       pkg_check_modules(LIBGSTREAMER_PLUGINS_BASE IMPORTED_TARGET gstreamer-plugins-base-1.0)
       pkg_check_modules(LIBGSTREAMER_APP IMPORTED_TARGET gstreamer-app-1.0)
@@ -323,7 +332,7 @@ if (BUILD_GSTREAMER_VIDEO_PLAYER_PLUGIN)
       pkg_check_modules(LIBGSTREAMER_VIDEO REQUIRED IMPORTED_TARGET gstreamer-video-1.0)
     endif()
 
-    if (LIBGSTREAMER_FOUND AND LIBGSTREAMER_PLUGINS_BASE_FOUND AND LIBGSTREAMER_APP_FOUND AND LIBGSTREAMER_ALLOCATORS_FOUND AND LIBGSTREAMER_VIDEO_FOUND)
+    if(LIBGSTREAMER_FOUND AND LIBGSTREAMER_PLUGINS_BASE_FOUND AND LIBGSTREAMER_APP_FOUND AND LIBGSTREAMER_ALLOCATORS_FOUND AND LIBGSTREAMER_VIDEO_FOUND)
       # There's no other way to query the libinput version (in code) somehow.
       # So we need to roll our own libinput version macro
       string(REPLACE "." ";" LIBGSTREAMER_VERSION_AS_LIST ${LIBGSTREAMER_VERSION})
@@ -349,8 +358,8 @@ if (BUILD_GSTREAMER_VIDEO_PLAYER_PLUGIN)
   endif()
 endif()
 
-if (BUILD_GSTREAMER_AUDIO_PLAYER_PLUGIN)
-  if (TRY_BUILD_GSTREAMER_AUDIO_PLAYER_PLUGIN)
+if(BUILD_GSTREAMER_AUDIO_PLAYER_PLUGIN)
+  if(TRY_BUILD_GSTREAMER_AUDIO_PLAYER_PLUGIN)
     pkg_check_modules(LIBGSTREAMER IMPORTED_TARGET gstreamer-1.0)
     pkg_check_modules(LIBGSTREAMER_APP IMPORTED_TARGET gstreamer-app-1.0)
     pkg_check_modules(LIBGSTREAMER_AUDIO IMPORTED_TARGET gstreamer-audio-1.0)
@@ -360,7 +369,7 @@ if (BUILD_GSTREAMER_AUDIO_PLAYER_PLUGIN)
     pkg_check_modules(LIBGSTREAMER_AUDIO REQUIRED IMPORTED_TARGET gstreamer-audio-1.0)
   endif()
 
-  if (LIBGSTREAMER_FOUND AND LIBGSTREAMER_APP_FOUND AND LIBGSTREAMER_AUDIO_FOUND)
+  if(LIBGSTREAMER_FOUND AND LIBGSTREAMER_APP_FOUND AND LIBGSTREAMER_AUDIO_FOUND)
     target_sources(flutterpi_module PRIVATE
       src/plugins/audioplayers/plugin.c
       src/plugins/audioplayers/player.c
@@ -375,29 +384,31 @@ if (BUILD_GSTREAMER_AUDIO_PLAYER_PLUGIN)
   endif()
 endif()
 
-if (BUILD_CHARSET_CONVERTER_PLUGIN)
+if(BUILD_CHARSET_CONVERTER_PLUGIN)
   target_sources(flutterpi_module PRIVATE src/plugins/charset_converter.c)
 endif()
 
 # Sentry Plugin
 set(HAVE_BUNDLED_CRASHPAD_HANDLER OFF)
-if (BUILD_SENTRY_PLUGIN)
+
+if(BUILD_SENTRY_PLUGIN)
   set(SENTRY_PIC ${CMAKE_POSITION_INDEPENDENT_CODE} CACHE BOOL "")
   add_subdirectory(third_party/sentry-native)
 
   target_sources(flutterpi_module PRIVATE src/plugins/sentry/sentry.c)
   target_link_libraries(flutterpi_module PUBLIC sentry::sentry)
 
-  if (SENTRY_BACKEND STREQUAL "crashpad" AND SENTRY_PLUGIN_BUNDLE_CRASHPAD_HANDLER)
+  if(SENTRY_BACKEND STREQUAL "crashpad" AND SENTRY_PLUGIN_BUNDLE_CRASHPAD_HANDLER)
     set(HAVE_BUNDLED_CRASHPAD_HANDLER ON)
-  
+
     target_sources(flutter-pi PRIVATE src/crashpad_handler_trampoline.cc)
+
     # link against the same libraries the crashpad_handler uses
-    
     get_target_property(handler_deps crashpad_handler INTERFACE_LINK_LIBRARIES)
     target_link_libraries(flutter-pi PUBLIC ${handler_deps})
   endif()
 endif()
+
 message(STATUS "Sentry plugin .......... ${BUILD_SENTRY_PLUGIN}")
 message(STATUS "Bundle crashpad_handler  ${HAVE_BUNDLED_CRASHPAD_HANDLER}")
 
@@ -406,24 +417,25 @@ message(STATUS "Bundle crashpad_handler  ${HAVE_BUNDLED_CRASHPAD_HANDLER}")
 target_link_options(flutterpi_module PUBLIC -rdynamic)
 
 # Define VULKAN_DEBUG if it was set to On, or if it was set to AUTO and we're using debug mode.
-if (VULKAN_DEBUG MATCHES AUTO)
-  if (CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(VULKAN_DEBUG MATCHES AUTO)
+  if(CMAKE_BUILD_TYPE MATCHES DEBUG)
     set(VULKAN_DEBUG ON)
   else()
     set(VULKAN_DEBUG OFF)
   endif()
-elseif (VULKAN_DEBUG MATCHES "OFF")
+elseif(VULKAN_DEBUG MATCHES "OFF")
   set(VULKAN_DEBUG OFF)
-elseif (VULKAN_DEBUG MATCHES "ON")
+elseif(VULKAN_DEBUG MATCHES "ON")
   set(VULKAN_DEBUG ON)
 endif()
 
 # Some sanitizer configs.
-if (ENABLE_TSAN)
+if(ENABLE_TSAN)
   target_link_options(flutterpi_module PUBLIC -fsanitize=thread)
   target_compile_options(flutterpi_module PUBLIC -fsanitize=thread)
 endif()
-if (ENABLE_ASAN)
+
+if(ENABLE_ASAN)
   # when we use asan, we need to force linking against the C++ stdlib.
   # If we don't link against it, and load a dynamic library that's linked against the C++ stdlib (like the flutter engine),
   # and something in the dynamically loaded library triggers asan, it'll throw an error because it hasn't
@@ -434,11 +446,13 @@ if (ENABLE_ASAN)
   target_compile_options(flutterpi_module PUBLIC -fsanitize=address)
 
   check_c_compiler_flag(-static-libasan HAVE_STATIC_LIBASAN)
-  if (HAVE_STATIC_LIBASAN)
+
+  if(HAVE_STATIC_LIBASAN)
     target_link_options(flutterpi_module PUBLIC -static-libasan)
   endif()
 endif()
-if (ENABLE_UBSAN)
+
+if(ENABLE_UBSAN)
   target_link_options(flutterpi_module PUBLIC -fsanitize=undefined)
   target_compile_options(flutterpi_module PUBLIC -fsanitize=undefined)
 endif()
@@ -448,7 +462,8 @@ configure_file(config.h.in config.h @ONLY)
 # TODO: make mapping portable
 # is mapping `../src/` to `` always gonna work?
 check_c_compiler_flag(-fmacro-prefix-map=.=. COMPILER_SUPPORTS_MACRO_PREFIX_MAP)
-if (COMPILER_SUPPORTS_MACRO_PREFIX_MAP)
+
+if(COMPILER_SUPPORTS_MACRO_PREFIX_MAP)
   target_compile_options(flutterpi_module PRIVATE "-fmacro-prefix-map=../src/=")
   target_compile_options(flutterpi_module PRIVATE "-fmacro-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/src/=")
 endif()
@@ -463,20 +478,22 @@ install(TARGETS flutter-pi RUNTIME DESTINATION bin)
 # Enable lto if supported.
 cmake_policy(SET CMP0069 NEW)
 include(CheckIPOSupported)
-# include(CheckLinkerFlag)
 
+# include(CheckLinkerFlag)
 set(USE_LTO OFF)
+
 # set(NEEDS_GOLD OFF)
 # set(NEEDS_LLD OFF)
-if(LTO AND (CMAKE_BUILD_TYPE STREQUAL Release OR CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo))
+if(LTO AND(CMAKE_BUILD_TYPE STREQUAL Release OR CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo))
   # So people can specify `-fuse-ld=lld` in the CMAKE_C_FLAGS.
   # Otherwise check_ipo_supported will not use CMAKE_C_FLAGS.
-  if (POLICY CMP0138)
+  if(POLICY CMP0138)
     cmake_policy(SET CMP0138 NEW)
   endif()
 
   check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_SUPPORT_OUTPUT)
-  if (NOT IPO_SUPPORTED)
+
+  if(NOT IPO_SUPPORTED)
     message(WARNING "IPO/LTO was requested in the configure options, but is not supported by the toolchain. Check CMakeFiles/CMakeError.log for details.")
   endif()
 
@@ -484,61 +501,64 @@ if(LTO AND (CMAKE_BUILD_TYPE STREQUAL Release OR CMAKE_BUILD_TYPE STREQUAL RelWi
   # Needs CMP0138.
   # (untested because CMP0138 required CMake 3.24, that's why it's commented out)
   # if (NOT IPO_SUPPORTED)
-  #   check_linker_flag(C "-fuse-ld=gold" SUPPORTS_GOLD)
-  #   if (SUPPORTS_GOLD)
-  #     set(OLD_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+  # check_linker_flag(C "-fuse-ld=gold" SUPPORTS_GOLD)
+  # if (SUPPORTS_GOLD)
+  # set(OLD_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
   #
-  #     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=gold")
-  #     try_compile()
-  #     check_ipo_supported(RESULT IPO_SUPPORTED_WITH_GOLD OUTPUT IPO_SUPPORT_OUTPUT)
-  #     if (IPO_SUPPORTED_WITH_GOLD)
-  #       set(IPO_SUPPORTED ON)
-  #       set(NEEDS_GOLD ON)
-  #     endif()
+  # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=gold")
+  # try_compile()
+  # check_ipo_supported(RESULT IPO_SUPPORTED_WITH_GOLD OUTPUT IPO_SUPPORT_OUTPUT)
+  # if (IPO_SUPPORTED_WITH_GOLD)
+  # set(IPO_SUPPORTED ON)
+  # set(NEEDS_GOLD ON)
+  # endif()
   #
-  #     set(CMAKE_C_FLAGS "${OLD_CMAKE_C_FLAGS}")
-  #   endif()
+  # set(CMAKE_C_FLAGS "${OLD_CMAKE_C_FLAGS}")
+  # endif()
   #
-  #   check_linker_flag(C "-fuse-ld=lld" SUPPORTS_LLD)
-  #   if (SUPPORTS_LLD)
-  #     set(OLD_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+  # check_linker_flag(C "-fuse-ld=lld" SUPPORTS_LLD)
+  # if (SUPPORTS_LLD)
+  # set(OLD_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
   #
-  #     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=lld")
-  #     check_ipo_supported(RESULT IPO_SUPPORTED_WITH_LLD OUTPUT IPO_SUPPORT_OUTPUT)
-  #     if (IPO_SUPPORTED_WITH_LLD)
-  #       set(IPO_SUPPORTED ON)
-  #       set(NEEDS_LLD ON)
-  #     endif()
+  # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=lld")
+  # check_ipo_supported(RESULT IPO_SUPPORTED_WITH_LLD OUTPUT IPO_SUPPORT_OUTPUT)
+  # if (IPO_SUPPORTED_WITH_LLD)
+  # set(IPO_SUPPORTED ON)
+  # set(NEEDS_LLD ON)
+  # endif()
   #
-  #     set(CMAKE_C_FLAGS "${OLD_CMAKE_C_FLAGS}")
-  #   endif()
+  # set(CMAKE_C_FLAGS "${OLD_CMAKE_C_FLAGS}")
+  # endif()
   # endif()
 
   # clang doesn't support LTO when using GNU ld.
-  if(IPO_SUPPORTED AND ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang"))
+  if(IPO_SUPPORTED AND("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang"))
     execute_process(COMMAND ${CMAKE_C_COMPILER} -Wl,--version OUTPUT_VARIABLE LINKER_VERSION_OUTPUT ERROR_QUIET)
+
     if("${LINKER_VERSION_OUTPUT}" MATCHES "GNU ld")
       message(WARNING "IPO/LTO was requested, but is not supported when using clang with GNU ld as the linker. Try setting gold or lld as the system linker.")
       set(IPO_SUPPORTED OFF)
     endif()
   endif()
 
-  if (IPO_SUPPORTED)
+  if(IPO_SUPPORTED)
     set(USE_LTO ON)
   endif()
 endif()
 
 message(STATUS "IPO/LTO ................ ${USE_LTO}")
-if (USE_LTO)
+
+if(USE_LTO)
   set_property(TARGET flutterpi_module PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
   set_property(TARGET flutter-pi PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+
   # if (NEEDS_GOLD)
-  #   Technically specifying only for one would suffice.
-  #   target_link_options(flutterpi_module PUBLIC "-fuse-ld=gold")
-  #   target_link_options(flutter-pi PUBLIC "-fuse-ld=gold")
+  # Technically specifying only for one would suffice.
+  # target_link_options(flutterpi_module PUBLIC "-fuse-ld=gold")
+  # target_link_options(flutter-pi PUBLIC "-fuse-ld=gold")
   # elseif (NEEDS_LLD)
-  #   target_link_options(flutterpi_module PUBLIC "-fuse-ld=lld")
-  #   target_link_options(flutter-pi PUBLIC "-fuse-ld=lld")
+  # target_link_options(flutterpi_module PUBLIC "-fuse-ld=lld")
+  # target_link_options(flutter-pi PUBLIC "-fuse-ld=lld")
   # endif()
 endif()
 
