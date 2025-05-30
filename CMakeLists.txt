@@ -171,9 +171,9 @@ target_include_directories(flutterpi_module PUBLIC
 )
 
 target_compile_options(flutterpi_module PUBLIC
-  $<$<CONFIG:Debug>:-O0 -Wall -Wextra -Wno-sign-compare -Werror -ggdb -U_FORTIFY_SOURCE -DDEBUG>
-  $<$<CONFIG:RelWithDebInfo>:-O3 -Wall -Wextra -Wno-sign-compare -ggdb -DNDEBUG>
-  $<$<CONFIG:Release>:-O3 -Wall -Wextra -Wno-sign-compare -DNDEBUG>
+  $<$<CONFIG:Debug>:-O0 -Wall -Wextra -Wno-sign-compare -Werror -ggdb -U_FORTIFY_SOURCE -DDEBUG -rpath=$ORIGIN/lib>
+  $<$<CONFIG:RelWithDebInfo>:-O3 -Wall -Wextra -Wno-sign-compare -ggdb -DNDEBUG -rpath=$ORIGIN/lib>
+  $<$<CONFIG:Release>:-O3 -Wall -Wextra -Wno-sign-compare -DNDEBUG -rpath=$ORIGIN/lib>
 )
 
 # GCC prior to 11.3 reports false positives for missing-field-initializers warning.
