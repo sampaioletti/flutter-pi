@@ -182,9 +182,9 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
     target_compile_options(flutterpi_module PUBLIC -Wno-missing-field-initializers)
   endif()
 
-  target_link_options(flutter-pi PUBLIC LINKER:--build-id)
+  target_link_options(flutter-pi PUBLIC LINKER:--build-id -rpath=$ORIGIN/lib)
 elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-  target_link_options(flutter-pi PUBLIC LINKER:--build-id=sha1)
+  target_link_options(flutter-pi PUBLIC LINKER:--build-id=sha1 -rpath=$ORIGIN/lib)
 endif()
 
 # libinput stuff
